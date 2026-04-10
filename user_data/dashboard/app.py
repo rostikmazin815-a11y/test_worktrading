@@ -33,7 +33,7 @@ BASE_STRATEGIES = [
     "SuperTrend",
     "TripleEMA_Momentum",
 ]
-TIMEFRAMES = ["15m", "1h"]
+TIMEFRAMES = ["5m", "15m", "1h", "4h"]
 
 
 def _service_name(strategy: str, timeframe: str) -> str:
@@ -56,11 +56,25 @@ STRATEGY_INSTANCES = [
     for strategy in BASE_STRATEGIES
 ]
 
-PAIRS = ["BTC/USDT:USDT", "ETH/USDT:USDT", "SOL/USDT:USDT"]
+PAIRS = [
+    "BTC/USDT:USDT",
+    "ETH/USDT:USDT",
+    "SOL/USDT:USDT",
+    "XRP/USDT:USDT",
+    "BNB/USDT:USDT",
+    "HYPE/USDT:USDT",
+    "LINK/USDT:USDT",
+    "LTC/USDT:USDT",
+]
 BINANCE_SYMBOLS = {
     "BTC/USDT:USDT": "BTCUSDT",
     "ETH/USDT:USDT": "ETHUSDT",
     "SOL/USDT:USDT": "SOLUSDT",
+    "XRP/USDT:USDT": "XRPUSDT",
+    "BNB/USDT:USDT": "BNBUSDT",
+    "HYPE/USDT:USDT": "HYPEUSDT",
+    "LINK/USDT:USDT": "LINKUSDT",
+    "LTC/USDT:USDT": "LTCUSDT",
 }
 
 # ─── Cached singletons ─────────────────────────
@@ -129,7 +143,7 @@ def _refresh_container_statuses_sync():
 def _get_container_statuses() -> dict[str, str]:
     """Return cached statuses; refresh in background if stale."""
     now = time.monotonic()
-    if now - _container_cache_ts > 3.0 or not _container_cache:
+    if now - _container_cache_ts > 5.0 or not _container_cache:
         # Fire and forget background refresh
         _executor.submit(_refresh_container_statuses_sync)
         if not _container_cache:
@@ -161,18 +175,23 @@ async def _fetch_prices() -> dict[str, float]:
     """Fetch tracked futures prices, cached 2s."""
     global _price_cache, _price_cache_ts
     now = time.monotonic()
-    if now - _price_cache_ts < 2.0 and _price_cache:
+    if now - _price_cache_ts < 4.0 and _price_cache:
         return _price_cache
 
     try:
         client = _get_http()
-        for pair, sym in BINANCE_SYMBOLS.items():
-            resp = await client.get(
-                f"https://fapi.binance.com/fapi/v1/ticker/price?symbol={sym}"
-            )
-            if resp.status_code == 200:
-                data = resp.json()
-                _price_cache[pair] = float(data["price"])
+        resp = await client.get("https://fapi.binance.com/fapi/v1/ticker/price")
+        if resp.status_code == 200:
+            symbol_prices = {
+                item["symbol"]: float(item["price"])
+                for item in resp.json()
+                if item.get("symbol") in set(BINANCE_SYMBOLS.values())
+            }
+            _price_cache = {
+                pair: symbol_prices[symbol]
+                for pair, symbol in BINANCE_SYMBOLS.items()
+                if symbol in symbol_prices
+            }
         _price_cache_ts = now
     except Exception:
         pass
@@ -236,7 +255,7 @@ def _get_open_trades(strategy_key: str) -> list[dict]:
     )
 
 
-_executor = ThreadPoolExecutor(max_workers=10)
+_executor = ThreadPoolExecutor(max_workers=24)
 
 # Strategies data cache
 _strategies_cache: list = []
@@ -246,12 +265,101 @@ _strategies_cache_ts: float = 0
 _trades_cache: dict = {}  # strategy -> {"open": [...], "closed": [...]}
 _trades_cache_ts: float = 0
 
+# Lightweight summary cache for overview
+_summary_cache: dict = {}
+_summary_cache_ts: float = 0
+
+
+def _get_trade_summary(strategy_key: str) -> dict:
+    rows = _query_db(
+        DB_DIR / f"{strategy_key}.sqlite",
+        """
+        SELECT
+            SUM(CASE WHEN is_open = 1 THEN 1 ELSE 0 END) AS open_trades,
+            SUM(CASE WHEN is_open = 0 THEN 1 ELSE 0 END) AS closed_trades,
+            SUM(CASE WHEN is_open = 0 THEN COALESCE(close_profit_abs, 0) ELSE 0 END) AS profit_usdt,
+            SUM(CASE WHEN is_open = 0 AND COALESCE(close_profit_abs, 0) > 0 THEN 1 ELSE 0 END) AS wins,
+            AVG(
+                CASE
+                    WHEN is_open = 0 AND open_date IS NOT NULL AND close_date IS NOT NULL
+                    THEN (julianday(close_date) - julianday(open_date)) * 24 * 60
+                    ELSE NULL
+                END
+            ) AS avg_duration_min,
+            SUM(CASE WHEN is_open = 0 THEN COALESCE(ABS(funding_fees), 0) ELSE 0 END) AS total_funding,
+            SUM(CASE WHEN is_open = 0 THEN COALESCE(fee_open_cost, 0) + COALESCE(fee_close_cost, 0) ELSE 0 END) AS total_fees,
+            SUM(CASE WHEN is_open = 0 AND COALESCE(is_short, 0) = 0 THEN 1 ELSE 0 END) AS longs,
+            SUM(CASE WHEN is_open = 0 AND COALESCE(is_short, 0) = 1 THEN 1 ELSE 0 END) AS shorts,
+            MAX(CASE WHEN is_open = 0 THEN COALESCE(close_profit, 0) ELSE NULL END) AS best_pct,
+            MIN(CASE WHEN is_open = 0 THEN COALESCE(close_profit, 0) ELSE NULL END) AS worst_pct
+        FROM trades
+        """,
+    )
+    if not rows:
+        return {
+            "open_trades": 0,
+            "closed_trades": 0,
+            "metrics": _compute_metrics([]),
+        }
+
+    row = rows[0]
+    closed_trades = int(row.get("closed_trades") or 0)
+    open_trades = int(row.get("open_trades") or 0)
+    wins = int(row.get("wins") or 0)
+    profit_usdt = float(row.get("profit_usdt") or 0.0)
+    metrics = {
+        "total_trades": closed_trades,
+        "profit_usdt": round(profit_usdt, 2),
+        "profit_pct": round(profit_usdt / WALLET * 100, 2),
+        "win_rate": round(wins / closed_trades * 100, 1) if closed_trades else 0.0,
+        "avg_duration_min": round(float(row.get("avg_duration_min") or 0.0), 1),
+        "max_drawdown_pct": 0.0,
+        "sharpe": 0.0,
+        "total_funding": round(float(row.get("total_funding") or 0.0), 4),
+        "total_fees": round(float(row.get("total_fees") or 0.0), 4),
+        "longs": int(row.get("longs") or 0),
+        "shorts": int(row.get("shorts") or 0),
+        "best_pct": round(float(row.get("best_pct") or 0.0) * 100, 2),
+        "worst_pct": round(float(row.get("worst_pct") or 0.0) * 100, 2),
+    }
+    return {
+        "open_trades": open_trades,
+        "closed_trades": closed_trades,
+        "metrics": metrics,
+    }
+
+
+def _refresh_all_summaries():
+    global _summary_cache, _summary_cache_ts
+    now = time.monotonic()
+    if now - _summary_cache_ts < 4.0 and _summary_cache:
+        return _summary_cache
+
+    futures = [
+        _executor.submit(_get_trade_summary, instance["key"])
+        for instance in STRATEGY_INSTANCES
+    ]
+    result = {}
+    for instance, future in zip(STRATEGY_INSTANCES, futures):
+        try:
+            result[instance["key"]] = future.result(timeout=2)
+        except Exception:
+            result[instance["key"]] = {
+                "open_trades": 0,
+                "closed_trades": 0,
+                "metrics": _compute_metrics([]),
+            }
+
+    _summary_cache = result
+    _summary_cache_ts = now
+    return result
+
 
 def _refresh_all_trades():
     """Load all trades from all DBs in parallel threads."""
     global _trades_cache, _trades_cache_ts
     now = time.monotonic()
-    if now - _trades_cache_ts < 2.0 and _trades_cache:
+    if now - _trades_cache_ts < 4.0 and _trades_cache:
         return _trades_cache
 
     def load_one(instance):
@@ -272,10 +380,12 @@ def _refresh_all_trades():
     return result
 
 
-def _load_strategy_data(instance: dict, statuses: dict, trades_data: dict) -> dict:
-    """Build strategy response from cached trade data."""
-    data = trades_data.get(instance["key"], {"open": [], "closed": []})
-    metrics = _compute_metrics(data["closed"])
+def _load_strategy_data(instance: dict, statuses: dict, summary_data: dict) -> dict:
+    """Build strategy response from lightweight cached summary data."""
+    data = summary_data.get(
+        instance["key"],
+        {"open_trades": 0, "closed_trades": 0, "metrics": _compute_metrics([])},
+    )
     return {
         "key": instance["key"],
         "name": instance["strategy"],
@@ -283,9 +393,9 @@ def _load_strategy_data(instance: dict, statuses: dict, trades_data: dict) -> di
         "timeframe": instance["timeframe"],
         "service": instance["service"],
         "status": statuses.get(instance["service"], "not_found"),
-        "open_trades": len(data["open"]),
-        "closed_trades": len(data["closed"]),
-        "metrics": metrics,
+        "open_trades": data["open_trades"],
+        "closed_trades": data["closed_trades"],
+        "metrics": data["metrics"],
     }
 
 
@@ -375,13 +485,13 @@ async def index():
 async def api_strategies():
     global _strategies_cache, _strategies_cache_ts
     now = time.monotonic()
-    if now - _strategies_cache_ts < 2.0 and _strategies_cache:
+    if now - _strategies_cache_ts < 4.0 and _strategies_cache:
         return _strategies_cache
 
     statuses = _get_container_statuses()
-    trades_data = _refresh_all_trades()
+    summary_data = _refresh_all_summaries()
 
-    result = [_load_strategy_data(instance, statuses, trades_data) for instance in STRATEGY_INSTANCES]
+    result = [_load_strategy_data(instance, statuses, summary_data) for instance in STRATEGY_INSTANCES]
     result.sort(key=lambda x: x["metrics"]["profit_usdt"], reverse=True)
     _strategies_cache = result
     _strategies_cache_ts = now
@@ -514,8 +624,11 @@ async def api_start(strategy: str):
     if not c:
         raise HTTPException(404, "Container not found")
     c.start()
-    global _container_cache_ts
+    global _container_cache_ts, _summary_cache_ts, _trades_cache_ts, _strategies_cache_ts
     _container_cache_ts = 0
+    _summary_cache_ts = 0
+    _trades_cache_ts = 0
+    _strategies_cache_ts = 0
     return {"status": "started", "strategy": strategy}
 
 
@@ -528,14 +641,17 @@ async def api_stop(strategy: str):
     if not c:
         raise HTTPException(404, "Container not found")
     c.stop(timeout=15)
-    global _container_cache_ts
+    global _container_cache_ts, _summary_cache_ts, _trades_cache_ts, _strategies_cache_ts
     _container_cache_ts = 0
+    _summary_cache_ts = 0
+    _trades_cache_ts = 0
+    _strategies_cache_ts = 0
     return {"status": "stopped", "strategy": strategy}
 
 
 @app.post("/api/start-all")
 async def api_start_all():
-    global _container_cache_ts
+    global _container_cache_ts, _summary_cache_ts, _trades_cache_ts, _strategies_cache_ts
     results = {}
     for instance in STRATEGY_INSTANCES:
         c = _get_container_for_action(instance["service"])
@@ -548,12 +664,15 @@ async def api_start_all():
         else:
             results[instance["key"]] = "not_found"
     _container_cache_ts = 0
+    _summary_cache_ts = 0
+    _trades_cache_ts = 0
+    _strategies_cache_ts = 0
     return results
 
 
 @app.post("/api/stop-all")
 async def api_stop_all():
-    global _container_cache_ts
+    global _container_cache_ts, _summary_cache_ts, _trades_cache_ts, _strategies_cache_ts
     results = {}
     for instance in STRATEGY_INSTANCES:
         c = _get_container_for_action(instance["service"])
@@ -566,6 +685,9 @@ async def api_stop_all():
         else:
             results[instance["key"]] = "not_found"
     _container_cache_ts = 0
+    _summary_cache_ts = 0
+    _trades_cache_ts = 0
+    _strategies_cache_ts = 0
     return results
 
 

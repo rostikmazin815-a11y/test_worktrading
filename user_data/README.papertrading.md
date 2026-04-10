@@ -1,6 +1,6 @@
 # Paper Trading Lab
 
-This setup runs 10 independent futures paper-trading strategies on `BTC/USDT:USDT`, `ETH/USDT:USDT`, and `SOL/USDT:USDT` on both `15m` and `1h`.
+This setup runs 10 independent futures paper-trading strategies on `BTC/USDT:USDT`, `ETH/USDT:USDT`, `SOL/USDT:USDT`, `XRP/USDT:USDT`, `BNB/USDT:USDT`, `HYPE/USDT:USDT`, `LINK/USDT:USDT`, and `LTC/USDT:USDT` on `5m`, `15m`, `1h`, and `4h`.
 
 It is configured to run through Docker Compose without mounting your `Desktop` folder into Docker.
 
@@ -15,9 +15,9 @@ What is tracked:
 Runtime baseline:
 
 - deposit: `1000 USDT`
-- pairs: `BTC`, `ETH`, `SOL`
-- timeframes: `15m` and `1h`
-- strategy instances: `20` total
+- pairs: `BTC`, `ETH`, `SOL`, `XRP`, `BNB`, `HYPE`, `LINK`, `LTC`
+- timeframes: `5m`, `15m`, `1h`, `4h`
+- strategy instances: `40` total
 - paper mode only: all trades are dry-run and written to SQLite
 
 Run the lab with Docker Compose:

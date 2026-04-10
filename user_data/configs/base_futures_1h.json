@@ -6,7 +6,7 @@
     "stake_currency": "USDT",
     "stake_amount": 200,
     "tradable_balance_ratio": 0.99,
-    "max_open_trades": 3,
+    "max_open_trades": 5,
     "timeframe": "1h",
     "initial_state": "running",
     "exchange": {
@@ -18,7 +18,12 @@
         "pair_whitelist": [
             "BTC/USDT:USDT",
             "ETH/USDT:USDT",
-            "SOL/USDT:USDT"
+            "SOL/USDT:USDT",
+            "XRP/USDT:USDT",
+            "BNB/USDT:USDT",
+            "HYPE/USDT:USDT",
+            "LINK/USDT:USDT",
+            "LTC/USDT:USDT"
         ],
         "pair_blacklist": []
     },

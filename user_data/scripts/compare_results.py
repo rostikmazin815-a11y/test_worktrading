@@ -21,6 +21,17 @@ DB_DIR = ROOT_DIR / "dbs"
 RESULTS_DIR = ROOT_DIR / "backtest_results"
 DEFAULT_EXPORT_DB = RESULTS_DIR / "paper_trading_analysis.sqlite"
 DEFAULT_REPORT = RESULTS_DIR / "paper_trading_report.md"
+TIMEFRAMES = ["5m", "15m", "1h", "4h"]
+PAIRS = [
+    "BTC/USDT:USDT",
+    "ETH/USDT:USDT",
+    "SOL/USDT:USDT",
+    "XRP/USDT:USDT",
+    "BNB/USDT:USDT",
+    "HYPE/USDT:USDT",
+    "LINK/USDT:USDT",
+    "LTC/USDT:USDT",
+]
 
 
 def _connect(db_path: Path) -> sqlite3.Connection:
@@ -30,7 +41,7 @@ def _connect(db_path: Path) -> sqlite3.Connection:
 
 
 def parse_strategy_key(strategy_key: str) -> tuple[str, str]:
-    for timeframe in ("15m", "1h"):
+    for timeframe in TIMEFRAMES:
         suffix = f"_{timeframe}"
         if strategy_key.endswith(suffix):
             return strategy_key[: -len(suffix)], timeframe
@@ -255,7 +266,7 @@ def print_table(results: list[tuple[str, dict[str, Any], int]]) -> None:
 
     print("\n" + separator)
     print("  STRATEGY COMPARISON — Paper Trading Results")
-    print(f"  Wallet: {WALLET} USDT | Mode: Futures (Binance) | TF: 15m + 1h")
+    print(f"  Wallet: {WALLET} USDT | Mode: Futures (Binance) | TF: {' + '.join(TIMEFRAMES)}")
     print(separator)
     print(header)
     print(separator)
@@ -601,7 +612,7 @@ def build_report(
         "",
         f"Wallet: `{WALLET:.0f} USDT`",
         "",
-        "Universe: `BTC/USDT:USDT`, `ETH/USDT:USDT`, `SOL/USDT:USDT` on `15m` and `1h`",
+        f"Universe: {', '.join(f'`{pair}`' for pair in PAIRS)} on `{TIMEFRAMES[0]}`, `{TIMEFRAMES[1]}`, `{TIMEFRAMES[2]}`, and `{TIMEFRAMES[3]}`",
         "",
         "## Summary",
         "",
@@ -659,7 +670,7 @@ def build_report(
         lines.append("| - | - | - | - | 0 | +0.00 | 0.0% | +0.00 | 0.00 |")
 
     lines.extend(["", "## Timeframe Split", ""])
-    for timeframe in ("15m", "1h"):
+    for timeframe in TIMEFRAMES:
         split = timeframe_aggregate.get(timeframe, {"profit": 0.0, "trades": 0.0})
         lines.append(
             f"- `{timeframe}`: `{int(split['trades'])}` closed trades, "

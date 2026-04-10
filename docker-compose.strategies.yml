@@ -10,185 +10,285 @@ x-strategy-common: &strategy-common
 
 ---
 services:
+  rsi_meanreversion_5m:
+    <<: *strategy-common
+    command: >
+      trade --config /freqtrade/user_data/configs/base_futures_5m.json --strategy RSI_MeanReversion
+      --db-url sqlite:////freqtrade/user_data/dbs/RSI_MeanReversion_5m.sqlite
+      --logfile /freqtrade/user_data/logs/RSI_MeanReversion_5m.log
+
   rsi_meanreversion_15m:
     <<: *strategy-common
     command: >
-      trade
-      --config /freqtrade/user_data/configs/base_futures_15m.json
-      --strategy RSI_MeanReversion
+      trade --config /freqtrade/user_data/configs/base_futures_15m.json --strategy RSI_MeanReversion
       --db-url sqlite:////freqtrade/user_data/dbs/RSI_MeanReversion_15m.sqlite
       --logfile /freqtrade/user_data/logs/RSI_MeanReversion_15m.log
 
   rsi_meanreversion_1h:
     <<: *strategy-common
     command: >
-      trade
-      --config /freqtrade/user_data/configs/base_futures_1h.json
-      --strategy RSI_MeanReversion
+      trade --config /freqtrade/user_data/configs/base_futures_1h.json --strategy RSI_MeanReversion
       --db-url sqlite:////freqtrade/user_data/dbs/RSI_MeanReversion_1h.sqlite
       --logfile /freqtrade/user_data/logs/RSI_MeanReversion_1h.log
+
+  rsi_meanreversion_4h:
+    <<: *strategy-common
+    command: >
+      trade --config /freqtrade/user_data/configs/base_futures_4h.json --strategy RSI_MeanReversion
+      --db-url sqlite:////freqtrade/user_data/dbs/RSI_MeanReversion_4h.sqlite
+      --logfile /freqtrade/user_data/logs/RSI_MeanReversion_4h.log
+
+  macd_crossover_5m:
+    <<: *strategy-common
+    command: >
+      trade --config /freqtrade/user_data/configs/base_futures_5m.json --strategy MACD_Crossover
+      --db-url sqlite:////freqtrade/user_data/dbs/MACD_Crossover_5m.sqlite
+      --logfile /freqtrade/user_data/logs/MACD_Crossover_5m.log
 
   macd_crossover_15m:
     <<: *strategy-common
     command: >
-      trade
-      --config /freqtrade/user_data/configs/base_futures_15m.json
-      --strategy MACD_Crossover
+      trade --config /freqtrade/user_data/configs/base_futures_15m.json --strategy MACD_Crossover
       --db-url sqlite:////freqtrade/user_data/dbs/MACD_Crossover_15m.sqlite
       --logfile /freqtrade/user_data/logs/MACD_Crossover_15m.log
 
   macd_crossover_1h:
     <<: *strategy-common
     command: >
-      trade
-      --config /freqtrade/user_data/configs/base_futures_1h.json
-      --strategy MACD_Crossover
+      trade --config /freqtrade/user_data/configs/base_futures_1h.json --strategy MACD_Crossover
       --db-url sqlite:////freqtrade/user_data/dbs/MACD_Crossover_1h.sqlite
       --logfile /freqtrade/user_data/logs/MACD_Crossover_1h.log
+
+  macd_crossover_4h:
+    <<: *strategy-common
+    command: >
+      trade --config /freqtrade/user_data/configs/base_futures_4h.json --strategy MACD_Crossover
+      --db-url sqlite:////freqtrade/user_data/dbs/MACD_Crossover_4h.sqlite
+      --logfile /freqtrade/user_data/logs/MACD_Crossover_4h.log
+
+  bollingerbands_bounce_5m:
+    <<: *strategy-common
+    command: >
+      trade --config /freqtrade/user_data/configs/base_futures_5m.json --strategy BollingerBands_Bounce
+      --db-url sqlite:////freqtrade/user_data/dbs/BollingerBands_Bounce_5m.sqlite
+      --logfile /freqtrade/user_data/logs/BollingerBands_Bounce_5m.log
 
   bollingerbands_bounce_15m:
     <<: *strategy-common
     command: >
-      trade
-      --config /freqtrade/user_data/configs/base_futures_15m.json
-      --strategy BollingerBands_Bounce
+      trade --config /freqtrade/user_data/configs/base_futures_15m.json --strategy BollingerBands_Bounce
       --db-url sqlite:////freqtrade/user_data/dbs/BollingerBands_Bounce_15m.sqlite
       --logfile /freqtrade/user_data/logs/BollingerBands_Bounce_15m.log
 
   bollingerbands_bounce_1h:
     <<: *strategy-common
     command: >
-      trade
-      --config /freqtrade/user_data/configs/base_futures_1h.json
-      --strategy BollingerBands_Bounce
+      trade --config /freqtrade/user_data/configs/base_futures_1h.json --strategy BollingerBands_Bounce
       --db-url sqlite:////freqtrade/user_data/dbs/BollingerBands_Bounce_1h.sqlite
       --logfile /freqtrade/user_data/logs/BollingerBands_Bounce_1h.log
+
+  bollingerbands_bounce_4h:
+    <<: *strategy-common
+    command: >
+      trade --config /freqtrade/user_data/configs/base_futures_4h.json --strategy BollingerBands_Bounce
+      --db-url sqlite:////freqtrade/user_data/dbs/BollingerBands_Bounce_4h.sqlite
+      --logfile /freqtrade/user_data/logs/BollingerBands_Bounce_4h.log
+
+  ema_cross_5m:
+    <<: *strategy-common
+    command: >
+      trade --config /freqtrade/user_data/configs/base_futures_5m.json --strategy EMA_Cross
+      --db-url sqlite:////freqtrade/user_data/dbs/EMA_Cross_5m.sqlite
+      --logfile /freqtrade/user_data/logs/EMA_Cross_5m.log
 
   ema_cross_15m:
     <<: *strategy-common
     command: >
-      trade
-      --config /freqtrade/user_data/configs/base_futures_15m.json
-      --strategy EMA_Cross
+      trade --config /freqtrade/user_data/configs/base_futures_15m.json --strategy EMA_Cross
       --db-url sqlite:////freqtrade/user_data/dbs/EMA_Cross_15m.sqlite
       --logfile /freqtrade/user_data/logs/EMA_Cross_15m.log
 
   ema_cross_1h:
     <<: *strategy-common
     command: >
-      trade
-      --config /freqtrade/user_data/configs/base_futures_1h.json
-      --strategy EMA_Cross
+      trade --config /freqtrade/user_data/configs/base_futures_1h.json --strategy EMA_Cross
       --db-url sqlite:////freqtrade/user_data/dbs/EMA_Cross_1h.sqlite
       --logfile /freqtrade/user_data/logs/EMA_Cross_1h.log
+
+  ema_cross_4h:
+    <<: *strategy-common
+    command: >
+      trade --config /freqtrade/user_data/configs/base_futures_4h.json --strategy EMA_Cross
+      --db-url sqlite:////freqtrade/user_data/dbs/EMA_Cross_4h.sqlite
+      --logfile /freqtrade/user_data/logs/EMA_Cross_4h.log
+
+  stochastic_rsi_5m:
+    <<: *strategy-common
+    command: >
+      trade --config /freqtrade/user_data/configs/base_futures_5m.json --strategy Stochastic_RSI
+      --db-url sqlite:////freqtrade/user_data/dbs/Stochastic_RSI_5m.sqlite
+      --logfile /freqtrade/user_data/logs/Stochastic_RSI_5m.log
 
   stochastic_rsi_15m:
     <<: *strategy-common
     command: >
-      trade
-      --config /freqtrade/user_data/configs/base_futures_15m.json
-      --strategy Stochastic_RSI
+      trade --config /freqtrade/user_data/configs/base_futures_15m.json --strategy Stochastic_RSI
       --db-url sqlite:////freqtrade/user_data/dbs/Stochastic_RSI_15m.sqlite
       --logfile /freqtrade/user_data/logs/Stochastic_RSI_15m.log
 
   stochastic_rsi_1h:
     <<: *strategy-common
     command: >
-      trade
-      --config /freqtrade/user_data/configs/base_futures_1h.json
-      --strategy Stochastic_RSI
+      trade --config /freqtrade/user_data/configs/base_futures_1h.json --strategy Stochastic_RSI
       --db-url sqlite:////freqtrade/user_data/dbs/Stochastic_RSI_1h.sqlite
       --logfile /freqtrade/user_data/logs/Stochastic_RSI_1h.log
+
+  stochastic_rsi_4h:
+    <<: *strategy-common
+    command: >
+      trade --config /freqtrade/user_data/configs/base_futures_4h.json --strategy Stochastic_RSI
+      --db-url sqlite:////freqtrade/user_data/dbs/Stochastic_RSI_4h.sqlite
+      --logfile /freqtrade/user_data/logs/Stochastic_RSI_4h.log
+
+  adx_trend_5m:
+    <<: *strategy-common
+    command: >
+      trade --config /freqtrade/user_data/configs/base_futures_5m.json --strategy ADX_Trend
+      --db-url sqlite:////freqtrade/user_data/dbs/ADX_Trend_5m.sqlite
+      --logfile /freqtrade/user_data/logs/ADX_Trend_5m.log
 
   adx_trend_15m:
     <<: *strategy-common
     command: >
-      trade
-      --config /freqtrade/user_data/configs/base_futures_15m.json
-      --strategy ADX_Trend
+      trade --config /freqtrade/user_data/configs/base_futures_15m.json --strategy ADX_Trend
       --db-url sqlite:////freqtrade/user_data/dbs/ADX_Trend_15m.sqlite
       --logfile /freqtrade/user_data/logs/ADX_Trend_15m.log
 
   adx_trend_1h:
     <<: *strategy-common
     command: >
-      trade
-      --config /freqtrade/user_data/configs/base_futures_1h.json
-      --strategy ADX_Trend
+      trade --config /freqtrade/user_data/configs/base_futures_1h.json --strategy ADX_Trend
       --db-url sqlite:////freqtrade/user_data/dbs/ADX_Trend_1h.sqlite
       --logfile /freqtrade/user_data/logs/ADX_Trend_1h.log
+
+  adx_trend_4h:
+    <<: *strategy-common
+    command: >
+      trade --config /freqtrade/user_data/configs/base_futures_4h.json --strategy ADX_Trend
+      --db-url sqlite:////freqtrade/user_data/dbs/ADX_Trend_4h.sqlite
+      --logfile /freqtrade/user_data/logs/ADX_Trend_4h.log
+
+  ichimoku_cloud_5m:
+    <<: *strategy-common
+    command: >
+      trade --config /freqtrade/user_data/configs/base_futures_5m.json --strategy Ichimoku_Cloud
+      --db-url sqlite:////freqtrade/user_data/dbs/Ichimoku_Cloud_5m.sqlite
+      --logfile /freqtrade/user_data/logs/Ichimoku_Cloud_5m.log
 
   ichimoku_cloud_15m:
     <<: *strategy-common
     command: >
-      trade
-      --config /freqtrade/user_data/configs/base_futures_15m.json
-      --strategy Ichimoku_Cloud
+      trade --config /freqtrade/user_data/configs/base_futures_15m.json --strategy Ichimoku_Cloud
       --db-url sqlite:////freqtrade/user_data/dbs/Ichimoku_Cloud_15m.sqlite
       --logfile /freqtrade/user_data/logs/Ichimoku_Cloud_15m.log
 
   ichimoku_cloud_1h:
     <<: *strategy-common
     command: >
-      trade
-      --config /freqtrade/user_data/configs/base_futures_1h.json
-      --strategy Ichimoku_Cloud
+      trade --config /freqtrade/user_data/configs/base_futures_1h.json --strategy Ichimoku_Cloud
       --db-url sqlite:////freqtrade/user_data/dbs/Ichimoku_Cloud_1h.sqlite
       --logfile /freqtrade/user_data/logs/Ichimoku_Cloud_1h.log
+
+  ichimoku_cloud_4h:
+    <<: *strategy-common
+    command: >
+      trade --config /freqtrade/user_data/configs/base_futures_4h.json --strategy Ichimoku_Cloud
+      --db-url sqlite:////freqtrade/user_data/dbs/Ichimoku_Cloud_4h.sqlite
+      --logfile /freqtrade/user_data/logs/Ichimoku_Cloud_4h.log
+
+  vwap_reversion_5m:
+    <<: *strategy-common
+    command: >
+      trade --config /freqtrade/user_data/configs/base_futures_5m.json --strategy VWAP_Reversion
+      --db-url sqlite:////freqtrade/user_data/dbs/VWAP_Reversion_5m.sqlite
+      --logfile /freqtrade/user_data/logs/VWAP_Reversion_5m.log
 
   vwap_reversion_15m:
     <<: *strategy-common
     command: >
-      trade
-      --config /freqtrade/user_data/configs/base_futures_15m.json
-      --strategy VWAP_Reversion
+      trade --config /freqtrade/user_data/configs/base_futures_15m.json --strategy VWAP_Reversion
       --db-url sqlite:////freqtrade/user_data/dbs/VWAP_Reversion_15m.sqlite
       --logfile /freqtrade/user_data/logs/VWAP_Reversion_15m.log
 
   vwap_reversion_1h:
     <<: *strategy-common
     command: >
-      trade
-      --config /freqtrade/user_data/configs/base_futures_1h.json
-      --strategy VWAP_Reversion
+      trade --config /freqtrade/user_data/configs/base_futures_1h.json --strategy VWAP_Reversion
       --db-url sqlite:////freqtrade/user_data/dbs/VWAP_Reversion_1h.sqlite
       --logfile /freqtrade/user_data/logs/VWAP_Reversion_1h.log
+
+  vwap_reversion_4h:
+    <<: *strategy-common
+    command: >
+      trade --config /freqtrade/user_data/configs/base_futures_4h.json --strategy VWAP_Reversion
+      --db-url sqlite:////freqtrade/user_data/dbs/VWAP_Reversion_4h.sqlite
+      --logfile /freqtrade/user_data/logs/VWAP_Reversion_4h.log
+
+  supertrend_5m:
+    <<: *strategy-common
+    command: >
+      trade --config /freqtrade/user_data/configs/base_futures_5m.json --strategy SuperTrend
+      --db-url sqlite:////freqtrade/user_data/dbs/SuperTrend_5m.sqlite
+      --logfile /freqtrade/user_data/logs/SuperTrend_5m.log
 
   supertrend_15m:
     <<: *strategy-common
     command: >
-      trade
-      --config /freqtrade/user_data/configs/base_futures_15m.json
-      --strategy SuperTrend
+      trade --config /freqtrade/user_data/configs/base_futures_15m.json --strategy SuperTrend
       --db-url sqlite:////freqtrade/user_data/dbs/SuperTrend_15m.sqlite
       --logfile /freqtrade/user_data/logs/SuperTrend_15m.log
 
   supertrend_1h:
     <<: *strategy-common
     command: >
-      trade
-      --config /freqtrade/user_data/configs/base_futures_1h.json
-      --strategy SuperTrend
+      trade --config /freqtrade/user_data/configs/base_futures_1h.json --strategy SuperTrend
       --db-url sqlite:////freqtrade/user_data/dbs/SuperTrend_1h.sqlite
       --logfile /freqtrade/user_data/logs/SuperTrend_1h.log
+
+  supertrend_4h:
+    <<: *strategy-common
+    command: >
+      trade --config /freqtrade/user_data/configs/base_futures_4h.json --strategy SuperTrend
+      --db-url sqlite:////freqtrade/user_data/dbs/SuperTrend_4h.sqlite
+      --logfile /freqtrade/user_data/logs/SuperTrend_4h.log
+
+  tripleema_momentum_5m:
+    <<: *strategy-common
+    command: >
+      trade --config /freqtrade/user_data/configs/base_futures_5m.json --strategy TripleEMA_Momentum
+      --db-url sqlite:////freqtrade/user_data/dbs/TripleEMA_Momentum_5m.sqlite
+      --logfile /freqtrade/user_data/logs/TripleEMA_Momentum_5m.log
 
   tripleema_momentum_15m:
     <<: *strategy-common
     command: >
-      trade
-      --config /freqtrade/user_data/configs/base_futures_15m.json
-      --strategy TripleEMA_Momentum
+      trade --config /freqtrade/user_data/configs/base_futures_15m.json --strategy TripleEMA_Momentum
       --db-url sqlite:////freqtrade/user_data/dbs/TripleEMA_Momentum_15m.sqlite
       --logfile /freqtrade/user_data/logs/TripleEMA_Momentum_15m.log
 
   tripleema_momentum_1h:
     <<: *strategy-common
     command: >
-      trade
-      --config /freqtrade/user_data/configs/base_futures_1h.json
-      --strategy TripleEMA_Momentum
+      trade --config /freqtrade/user_data/configs/base_futures_1h.json --strategy TripleEMA_Momentum
       --db-url sqlite:////freqtrade/user_data/dbs/TripleEMA_Momentum_1h.sqlite
       --logfile /freqtrade/user_data/logs/TripleEMA_Momentum_1h.log
+
+  tripleema_momentum_4h:
+    <<: *strategy-common
+    command: >
+      trade --config /freqtrade/user_data/configs/base_futures_4h.json --strategy TripleEMA_Momentum
+      --db-url sqlite:////freqtrade/user_data/dbs/TripleEMA_Momentum_4h.sqlite
+      --logfile /freqtrade/user_data/logs/TripleEMA_Momentum_4h.log
 
   dashboard:
     build: ./user_data/dashboard

@@ -7,7 +7,7 @@
     "stake_amount": 200,
     "tradable_balance_ratio": 0.99,
     "max_open_trades": 5,
-    "timeframe": "15m",
+    "timeframe": "5m",
     "initial_state": "running",
     "exchange": {
         "name": "binance",

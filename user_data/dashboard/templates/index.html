@@ -154,6 +154,48 @@ tr:hover td { background: var(--surface2); }
   align-items: center;
 }
 .panel-body { padding: 16px; }
+.overview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(460px, 1fr));
+  gap: 16px;
+}
+.timeframe-block {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.timeframe-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background:
+    linear-gradient(135deg, rgba(59,130,246,0.10), rgba(168,85,247,0.08));
+}
+.timeframe-title {
+  font-size: 15px;
+  font-weight: 700;
+}
+.timeframe-meta {
+  font-size: 12px;
+  color: var(--text2);
+}
+.table-wrap {
+  overflow-x: auto;
+}
+.mini-table th,
+.mini-table td {
+  padding: 9px 10px;
+  font-size: 12px;
+}
+.mini-table th {
+  cursor: default;
+}
+.mini-table th:hover {
+  color: var(--text2);
+}
 
 .log-box {
   background: var(--bg);
@@ -222,7 +264,7 @@ tr:hover td { background: var(--surface2); }
 <div class="header">
   <div>
     <h1>Strategy Comparison Dashboard</h1>
-    <div class="header-info">Binance Futures | BTC/USDT, ETH/USDT, SOL/USDT | 15m + 1h | Paper Trading</div>
+    <div class="header-info">Binance Futures | BTC, ETH, SOL, XRP, BNB, HYPE, LINK, LTC | 5m + 15m + 1h + 4h | Paper Trading</div>
   </div>
   <div class="controls">
     <span class="refresh-timer" id="timer"></span>
@@ -246,33 +288,11 @@ tr:hover td { background: var(--surface2); }
     <div class="stats-row" id="summary-stats"></div>
     <div class="panel">
       <div class="panel-header">
-        <span>Strategy Comparison</span>
+        <span>Strategy Comparison By Timeframe</span>
         <span class="refresh-timer" id="last-update"></span>
       </div>
-      <div style="overflow-x: auto;">
-        <table id="strategy-table">
-          <thead>
-            <tr>
-              <th data-sort="rank">#</th>
-              <th data-sort="status">Status</th>
-              <th data-sort="timeframe">TF</th>
-              <th data-sort="name">Strategy</th>
-              <th data-sort="total_trades">Closed</th>
-              <th data-sort="open_count">Open</th>
-              <th data-sort="profit_usdt">Profit $</th>
-              <th data-sort="profit_pct">Profit %</th>
-              <th data-sort="win_rate">Win Rate</th>
-              <th data-sort="avg_duration_min">Avg Dur</th>
-              <th data-sort="max_drawdown_pct">Max DD</th>
-              <th data-sort="sharpe">Sharpe</th>
-              <th data-sort="total_funding">Funding</th>
-              <th data-sort="total_fees">Fees</th>
-              <th data-sort="longs">L/S</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody id="strategy-tbody"></tbody>
-        </table>
+      <div class="panel-body">
+        <div class="overview-grid" id="overview-groups"></div>
       </div>
     </div>
   </div>
@@ -376,12 +396,14 @@ tr:hover td { background: var(--surface2); }
 <script>
 let strategiesData = [];
 let equityChart = null;
-let sortKey = 'profit_usdt';
-let sortDir = 'desc';
 let refreshInterval = null;
 let isRefreshing = false;
 let globalActionInFlight = false;
+let historyLoading = false;
+let positionsLoading = false;
+let activeTab = 'overview';
 const pendingActions = new Map();
+const TIMEFRAME_ORDER = ['5m', '15m', '1h', '4h'];
 
 const COLORS = [
   '#3b82f6','#22c55e','#ef4444','#eab308','#a855f7',
@@ -448,6 +470,9 @@ async function refresh() {
     populateLogSelect();
     document.getElementById('last-update').textContent =
       `Updated: ${new Date().toLocaleTimeString()}`;
+    if (activeTab === 'positions') {
+      loadPositions();
+    }
   } catch (e) {
     console.error('Refresh failed:', e);
   } finally {
@@ -497,68 +522,81 @@ function renderSummary() {
 }
 
 function renderTable() {
-  const tbody = document.getElementById('strategy-tbody');
-  // Sort
-  const sorted = [...strategiesData].sort((a, b) => {
-    let va, vb;
-    if (sortKey === 'name') { va = a.display_name; vb = b.display_name; }
-    else if (sortKey === 'timeframe') { va = a.timeframe; vb = b.timeframe; }
-    else if (sortKey === 'status') { va = getEffectiveStatus(a); vb = getEffectiveStatus(b); }
-    else if (sortKey === 'open_count') { va = a.open_trades; vb = b.open_trades; }
-    else { va = a.metrics[sortKey] || 0; vb = b.metrics[sortKey] || 0; }
-    if (typeof va === 'string') return sortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
-    return sortDir === 'asc' ? va - vb : vb - va;
-  });
+  const root = document.getElementById('overview-groups');
+  const grouped = {};
 
-  tbody.innerHTML = sorted.map((d, i) => {
-    const m = d.metrics;
-    const effectiveStatus = getEffectiveStatus(d);
-    const buttonDisabled = pendingActions.has(d.key) ? 'disabled' : '';
-    return `<tr>
-      <td>${i+1}</td>
-      <td>${statusDot(effectiveStatus)}</td>
-      <td>${d.timeframe}</td>
-      <td><span onclick="showTrades('${d.key}')" style="color:var(--blue);cursor:pointer">${d.display_name}</span></td>
-      <td>${d.closed_trades}</td>
-      <td>${d.open_trades}</td>
-      <td>${fmtProfit(m.profit_usdt)}</td>
-      <td>${fmtPct(m.profit_pct)}</td>
-      <td>${m.win_rate.toFixed(1)}%</td>
-      <td>${fmtDuration(m.avg_duration_min)}</td>
-      <td>${m.max_drawdown_pct.toFixed(2)}%</td>
-      <td>${m.sharpe.toFixed(2)}</td>
-      <td>${m.total_funding.toFixed(4)}</td>
-      <td>${m.total_fees.toFixed(4)}</td>
-      <td>${m.longs}/${m.shorts}</td>
-      <td>
-        ${effectiveStatus === 'running'
-          ? `<button class="btn btn-sm btn-red" ${buttonDisabled} onclick="stopStrategy('${d.key}')">${actionLabel(d)}</button>`
-          : `<button class="btn btn-sm btn-green" ${buttonDisabled} onclick="startStrategy('${d.key}')">${actionLabel(d)}</button>`}
-      </td>
-    </tr>`;
-  }).join('');
-
-  // Update sort headers
-  document.querySelectorAll('#strategy-table th').forEach(th => {
-    th.classList.remove('sorted-asc', 'sorted-desc');
-    if (th.dataset.sort === sortKey) {
-      th.classList.add(sortDir === 'asc' ? 'sorted-asc' : 'sorted-desc');
-    }
-  });
-}
-
-// Sort on header click
-document.querySelector('#strategy-table thead').addEventListener('click', (e) => {
-  const th = e.target.closest('th');
-  if (!th || !th.dataset.sort) return;
-  if (sortKey === th.dataset.sort) {
-    sortDir = sortDir === 'asc' ? 'desc' : 'asc';
-  } else {
-    sortKey = th.dataset.sort;
-    sortDir = 'desc';
+  for (const timeframe of TIMEFRAME_ORDER) grouped[timeframe] = [];
+  for (const item of strategiesData) {
+    if (!grouped[item.timeframe]) grouped[item.timeframe] = [];
+    grouped[item.timeframe].push(item);
   }
-  renderTable();
-});
+
+  root.innerHTML = TIMEFRAME_ORDER.map(timeframe => {
+    const items = (grouped[timeframe] || []).sort((a, b) => {
+      const profitDiff = (b.metrics.profit_usdt || 0) - (a.metrics.profit_usdt || 0);
+      if (profitDiff !== 0) return profitDiff;
+      return a.display_name.localeCompare(b.display_name);
+    });
+
+    const running = items.filter(item => getEffectiveStatus(item) === 'running').length;
+    const openPositions = items.reduce((sum, item) => sum + item.open_trades, 0);
+
+    return `
+      <div class="timeframe-block">
+        <div class="timeframe-header">
+          <div>
+            <div class="timeframe-title">${timeframe}</div>
+            <div class="timeframe-meta">${items.length} strategies</div>
+          </div>
+          <div class="timeframe-meta">running ${running}/${items.length} | open ${openPositions}</div>
+        </div>
+        <div class="table-wrap">
+          <table class="mini-table">
+            <thead>
+              <tr>
+                <th>Status</th>
+                <th>Strategy</th>
+                <th>Closed</th>
+                <th>Open</th>
+                <th>Profit $</th>
+                <th>Win</th>
+                <th>Avg Dur</th>
+                <th>Funding</th>
+                <th>Fees</th>
+                <th>Act</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${items.map(d => {
+                const m = d.metrics;
+                const effectiveStatus = getEffectiveStatus(d);
+                const buttonDisabled = pendingActions.has(d.key) ? 'disabled' : '';
+                return `
+                  <tr>
+                    <td>${statusDot(effectiveStatus)}</td>
+                    <td><span onclick="showTrades('${d.key}')" style="color:var(--blue);cursor:pointer">${d.display_name}</span></td>
+                    <td>${d.closed_trades}</td>
+                    <td>${d.open_trades}</td>
+                    <td>${fmtProfit(m.profit_usdt)}</td>
+                    <td>${m.win_rate.toFixed(1)}%</td>
+                    <td>${fmtDuration(m.avg_duration_min)}</td>
+                    <td>${m.total_funding.toFixed(4)}</td>
+                    <td>${m.total_fees.toFixed(4)}</td>
+                    <td>
+                      ${effectiveStatus === 'running'
+                        ? `<button class="btn btn-sm btn-red" ${buttonDisabled} onclick="stopStrategy('${d.key}')">${actionLabel(d)}</button>`
+                        : `<button class="btn btn-sm btn-green" ${buttonDisabled} onclick="startStrategy('${d.key}')">${actionLabel(d)}</button>`}
+                    </td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
 
 // ─── Equity Chart ──────────────────────
 
@@ -775,11 +813,15 @@ function closeModal() {
 let positionsInterval = null;
 
 async function loadPositions() {
+  if (positionsLoading) return;
+  positionsLoading = true;
   try {
     const data = await fetchJSON('/api/positions');
     renderPositions(data);
   } catch (e) {
     console.error('Positions load failed:', e);
+  } finally {
+    positionsLoading = false;
   }
 }
 
@@ -872,9 +914,11 @@ function stopPositionsRefresh() {
 
 async function loadHistory() {
   const tbody = document.getElementById('history-tbody');
+  if (historyLoading) return;
+  historyLoading = true;
   tbody.innerHTML = '<tr><td colspan="14" style="text-align:center;padding:20px"><div class="spinner"></div> Loading...</td></tr>';
   try {
-    const trades = await fetchJSON('/api/history?limit=200');
+    const trades = await fetchJSON('/api/history?limit=100');
     if (trades.length === 0) {
       tbody.innerHTML = '<tr><td colspan="14" style="text-align:center;color:var(--text2);padding:32px">No closed trades yet</td></tr>';
       return;
@@ -901,6 +945,8 @@ async function loadHistory() {
     }).join('');
   } catch (e) {
     tbody.innerHTML = `<tr><td colspan="14" style="color:var(--red);padding:20px">Error: ${e.message}</td></tr>`;
+  } finally {
+    historyLoading = false;
   }
 }
 
@@ -936,6 +982,7 @@ async function loadLogs() {
 // ─── Tabs ──────────────────────────────
 
 function switchTab(tab) {
+  activeTab = tab;
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.querySelector(`.tab[data-tab="${tab}"]`).classList.add('active');
 
@@ -951,7 +998,7 @@ function switchTab(tab) {
 // ─── Auto-Refresh ──────────────────────
 
 function startAutoRefresh() {
-  let countdown = 5;
+  let countdown = 8;
   const timerEl = document.getElementById('timer');
   timerEl.textContent = `Refresh in ${countdown}s`;
 
@@ -959,8 +1006,10 @@ function startAutoRefresh() {
     countdown--;
     timerEl.textContent = `Refresh in ${countdown}s`;
     if (countdown <= 0) {
-      refresh();
-      countdown = 5;
+      if (activeTab !== 'history' && activeTab !== 'logs') {
+        refresh();
+      }
+      countdown = 8;
     }
   }, 1000);
 }
